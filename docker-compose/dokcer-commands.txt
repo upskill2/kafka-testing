@@ -1,5 +1,15 @@
 #!/bin/bash
+#kafka commandline tool
 docker container exec -it kafka1 /bin/bash
+
+#describe partitions for topics
+kafka-topics --bootstrap-server localhost:9092 --describe --topic order.created
+#change partitions in the topic
+kafka-topics --bootstrap-server localhost:9092 --alter --topic order.created --partitions 5
+#list consumer groups
+kafka-consumer-groups --bootstrap-server localhost:9092 --list
+#details for the consumer group
+kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group dispatcher.order.created.consumer
 
 # create topic producer
 kafka-console-producer --topic order.created --bootstrap-server localhost:9092
@@ -12,6 +22,9 @@ kafka-console-producer --topic order.created --bootstrap-server localhost:9092 -
 {"orderId": "123", "item": "invalid-4"}
 #with key
 "abc":{"orderId": "4f27ea17-83bd-46d2-9459-d0c0ac5fc05b", "item": "item-14"}
+"efg":{"orderId": "4f27ea17-83bd-46d2-9459-d0c0ac5fc05b", "item": "item-20"}
+"xcv":{"orderId": "4f27ea17-83bd-46d2-9459-d0c0ac5fc05b", "item": "item-20"}
+"123":{"orderId": "4f27ea17-83bd-46d2-9459-d0c0ac5fc023", "item": "item-11"}
 
 # create topic dispatcher consumer
 kafka-console-consumer --topic order.dispatched --bootstrap-server localhost:9092

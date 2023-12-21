@@ -5,6 +5,7 @@ import dev.tech.dispatch.service.DispatcherService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
@@ -16,16 +17,16 @@ import java.util.concurrent.ExecutionException;
 @Component
 @Slf4j
 @AllArgsConstructor
+@KafkaListener (
+        id = "orderConsumerClient",
+        topics = "order.created",
+        groupId = "dispatcher.order.created.consumer",
+        containerFactory = "kafkaListenerContainerFactory")
 public class OrderCreatedHandler {
 
     private final DispatcherService dispatcherService;
 
-    @KafkaListener (
-            id = "orderConsumerClient",
-            topics = "order.created",
-            groupId = "dispatcher.order.created.consumer",
-            containerFactory = "kafkaListenerContainerFactory"
-    )
+    @KafkaHandler
     public void listen (@Header (KafkaHeaders.RECEIVED_PARTITION) Integer partition,
                         @Header (KafkaHeaders.RECEIVED_KEY) String key,
                         @Payload OrderCreated payload) {

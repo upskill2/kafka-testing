@@ -5,6 +5,7 @@ import dev.tech.dispatch.message.TrackingStatusUpdated;
 import dev.tech.dispatch.util.Status;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.KafkaHeaders;
@@ -19,17 +20,17 @@ import static dev.tech.dispatch.service.DispatcherService.ORDER_DISPATCHED_TRACK
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@KafkaListener (
+        id = "trackingServiceClient",
+        topics = ORDER_DISPATCHED_TRACKING_TOPIC,
+        groupId = "tracking.service.consumer",
+        containerFactory = "kafkaListenerContainerFactory")
 public class TrackingService {
     public static final String TRACKING_STATUS_TOPIC = "tracking.status";
 
     private final KafkaTemplate<String, Object> kafkaProducer;
 
-    @KafkaListener (
-            id = "trackingServiceClient",
-            topics = ORDER_DISPATCHED_TRACKING_TOPIC,
-            groupId = "tracking.service.consumer",
-            containerFactory = "kafkaListenerContainerFactory"
-    )
+    @KafkaHandler
     public void listen (@Header (KafkaHeaders.RECEIVED_KEY) String key,
                         @Header (KafkaHeaders.RECEIVED_PARTITION) Integer partition,
                         @Payload DispatchPreparingEvent payload) throws ExecutionException, InterruptedException {
