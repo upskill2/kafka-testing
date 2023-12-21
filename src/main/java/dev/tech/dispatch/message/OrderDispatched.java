@@ -15,10 +15,7 @@ import java.util.UUID;
 @Slf4j
 @Builder
 public class OrderDispatched {
-
     private UUID orderId;
-
     private UUID processedById;
-
     private String notes;
 }

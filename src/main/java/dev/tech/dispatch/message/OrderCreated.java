@@ -12,8 +12,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderCreated {
-
     UUID orderId;
     String item;
-
 }

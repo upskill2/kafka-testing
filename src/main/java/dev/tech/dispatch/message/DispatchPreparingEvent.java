@@ -12,7 +12,5 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DispatchPreparingEvent {
-
     private UUID orderId;
-
 }

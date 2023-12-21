@@ -1,5 +1,6 @@
 package dev.tech.dispatch.util;
 
 public enum Status {
-    PREPARING
+    PREPARING,
+    COMPLETED
 }

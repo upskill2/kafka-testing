@@ -19,6 +19,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.util.concurrent.TimeUnit;
 
+import static dev.tech.dispatch.service.DispatcherService.ORDER_CREATED_TOPIC;
 import static dev.tech.dispatch.util.TestEventData.buildOrderCreated;
 import static java.util.UUID.randomUUID;
 import static org.awaitility.Awaitility.await;
@@ -31,9 +32,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 @DirtiesContext (classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 class OrderDispatchIntegrationTest {
 
-    private static final String ORDER_CREATED_TOPIC = "order.created";
-    private static final String ORDER_DISPATCHED_TOPIC = "order.dispatched";
-    private static final String ORDER_DISPATCHED_TRACKING_TOPIC = "dispatch.tracking";
+  //  private static final String ORDER_CREATED_TOPIC = "order.created";
 
     @Autowired
     private KafkaTemplate<String, Object> kafkaTemplate;
@@ -86,7 +85,8 @@ class OrderDispatchIntegrationTest {
         }*/
 
         registry.getListenerContainers ().forEach (container ->
-                ContainerTestUtils.waitForAssignment (container, embeddedKafkaBroker.getPartitionsPerTopic ()));
+                ContainerTestUtils.waitForAssignment (container,
+                        container.getContainerProperties ().getTopics ().length * embeddedKafkaBroker.getPartitionsPerTopic ()));
     }
 
     @Test
@@ -94,11 +94,11 @@ class OrderDispatchIntegrationTest {
         String key = randomUUID ().toString ();
         sendMessage (ORDER_CREATED_TOPIC, key, buildOrderCreated (randomUUID (), "test-item"));
 
-        await ().atMost (3, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
+        await ().atMost (5, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
                 .until (kafkaTestListener.orderDispatchedTopic::get, equalTo (1));
 
         await ().atMost (1, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
-                .until (kafkaTestListener.orderDispatchedTrackingTopic::get, equalTo (1));
+                .until (kafkaTestListener.orderDispatchedTrackingTopic::get, equalTo (2));
     }
 
     private void sendMessage (final String topic, String key, Object data) throws Exception {

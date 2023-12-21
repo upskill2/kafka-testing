@@ -4,7 +4,6 @@ import dev.tech.dispatch.message.OrderCreated;
 import dev.tech.dispatch.service.DispatcherService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.KafkaHeaders;
@@ -12,7 +11,7 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.ExecutionException;
+import static dev.tech.dispatch.service.DispatcherService.ORDER_CREATED_TOPIC;
 
 @Component
 @Slf4j

@@ -1,5 +1,6 @@
 package dev.tech.dispatch.service;
 
+import dev.tech.dispatch.message.DispatchCompletedEvent;
 import dev.tech.dispatch.message.DispatchPreparingEvent;
 import dev.tech.dispatch.message.TrackingStatusUpdated;
 import dev.tech.dispatch.util.Status;
@@ -38,6 +39,14 @@ public class TrackingService {
         emit (key, payload);
     }
 
+    @KafkaHandler
+    public void listen (@Header (KafkaHeaders.RECEIVED_KEY) String key,
+                        @Header (KafkaHeaders.RECEIVED_PARTITION) Integer partition,
+                        @Payload DispatchCompletedEvent payload) throws ExecutionException, InterruptedException {
+        log.info ("TrackingService received Completed event: {} from topic: {}", payload, ORDER_DISPATCHED_TRACKING_TOPIC);
+        emit (key, payload);
+    }
+
     public void emit (String key, DispatchPreparingEvent payload) throws ExecutionException, InterruptedException {
         TrackingStatusUpdated updatedEvent = TrackingStatusUpdated.builder ()
                 .orderId (payload.getOrderId ())
@@ -46,6 +55,16 @@ public class TrackingService {
 
         kafkaProducer.send (TRACKING_STATUS_TOPIC, key, updatedEvent).get ();
         log.info ("TrackingService sent event: {}  status to topic: {}, with key: {}", updatedEvent, TRACKING_STATUS_TOPIC, key);
+    }
+
+    public void emit (String key, DispatchCompletedEvent payload) throws ExecutionException, InterruptedException {
+        TrackingStatusUpdated updatedEvent = TrackingStatusUpdated.builder ()
+                .orderId (payload.getOrderId ())
+                .status (Status.COMPLETED)
+                .build ();
+
+        kafkaProducer.send (TRACKING_STATUS_TOPIC, key, updatedEvent).get ();
+        log.info ("TrackingService sent Completed event: {} to topic: {}, with key: {}", updatedEvent, TRACKING_STATUS_TOPIC, key);
     }
 
 }
