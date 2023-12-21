@@ -25,19 +25,21 @@ class OrderCreatedHandlerTest {
 
     @Test
     void listen_Success () throws ExecutionException, InterruptedException {
+        String key = randomUUID ().toString ();
         OrderCreated testEvent = buildOrderCreated (randomUUID (), randomUUID ().toString ());
-        orderCreatedHandler.listen (testEvent);
-        verify (dispatcherServiceMock, times (1)).process (testEvent);
+        orderCreatedHandler.listen (0, key, testEvent);
+        verify (dispatcherServiceMock, times (1)).process (key, testEvent);
     }
 
     @Test
     void listen_ThrowsException () throws ExecutionException, InterruptedException {
+        String key = randomUUID ().toString ();
         OrderCreated testEvent = buildOrderCreated (randomUUID (), randomUUID ().toString ());
 
-        doThrow (new RuntimeException ("Test Exception")).when (dispatcherServiceMock).process (testEvent);
+        doThrow (new RuntimeException ("Test Exception")).when (dispatcherServiceMock).process (key, testEvent);
 
-        orderCreatedHandler.listen (testEvent);
-        verify (dispatcherServiceMock, times (1)).process (testEvent);
+        orderCreatedHandler.listen (0, key, testEvent);
+        verify (dispatcherServiceMock, times (1)).process (key, testEvent);
     }
 
 }

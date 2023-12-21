@@ -3,18 +3,30 @@ docker container exec -it kafka1 /bin/bash
 
 # create topic producer
 kafka-console-producer --topic order.created --bootstrap-server localhost:9092
+#producer with key
+kafka-console-producer --topic order.created --bootstrap-server localhost:9092 --property parse.key=true --property key.separator=:
 
 # create order
-{"orderId": "4f27ea17-83bd-46d2-9459-d0c0ac5fc05b", "item": "item-6"}
+{"orderId": "4f27ea17-83bd-46d2-9459-d0c0ac5fc05b", "item": "item-11"}
+#invalid
 {"orderId": "123", "item": "invalid-4"}
+#with key
+"abc":{"orderId": "4f27ea17-83bd-46d2-9459-d0c0ac5fc05b", "item": "item-14"}
 
-# create topic consumer
+# create topic dispatcher consumer
 kafka-console-consumer --topic order.dispatched --bootstrap-server localhost:9092
+#consumer with printing a key
+kafka-console-consumer --topic order.dispatched --bootstrap-server localhost:9092 --property print.key=true --property key.separator=:
 
-# create topic consumer tracking
+
+# create topic dispatcher tracking consumer
 kafka-console-consumer --topic dispatch.tracking --bootstrap-server localhost:9092
+#consumer with printing a key
+kafka-console-consumer --topic dispatch.tracking --bootstrap-server localhost:9092 --property print.key=true --property key.separator=:
 
-# create topic consumer status
+# create topic tracking status consumer
 kafka-console-consumer --topic tracking.status --bootstrap-server localhost:9092
+#consumer with printing a key
+kafka-console-consumer --topic tracking.status --bootstrap-server localhost:9092 --property print.key=true --property key.separator=:
 
 
