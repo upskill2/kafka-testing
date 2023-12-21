@@ -1,0 +1,20 @@
+#!/bin/bash
+docker container exec -it kafka1 /bin/bash
+
+# create topic producer
+kafka-console-producer --topic order.created --bootstrap-server localhost:9092
+
+# create order
+{"orderId": "4f27ea17-83bd-46d2-9459-d0c0ac5fc05b", "item": "item-6"}
+{"orderId": "123", "item": "invalid-4"}
+
+# create topic consumer
+kafka-console-consumer --topic order.dispatched --bootstrap-server localhost:9092
+
+# create topic consumer tracking
+kafka-console-consumer --topic dispatch.tracking --bootstrap-server localhost:9092
+
+# create topic consumer status
+kafka-console-consumer --topic tracking.status --bootstrap-server localhost:9092
+
+
