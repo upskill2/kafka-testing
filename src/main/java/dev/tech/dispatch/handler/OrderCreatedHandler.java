@@ -1,9 +1,12 @@
 package dev.tech.dispatch.handler;
 
+import dev.tech.dispatch.exceptions.NonRetryableException;
+import dev.tech.dispatch.exceptions.RetryableException;
 import dev.tech.dispatch.message.OrderCreated;
 import dev.tech.dispatch.service.DispatcherService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.NotReadablePropertyException;
 import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.KafkaHeaders;
@@ -32,8 +35,12 @@ public class OrderCreatedHandler {
         log.info ("Received OrderCreated message: {}. Partition: {}, - key {}", payload, partition, key);
         try {
             dispatcherService.process (key, payload);
+        } catch (RetryableException e) {
+            log.warn ("Retryable Exception: {}", e.getMessage ());
+            throw e;
         } catch (Exception e) {
-            log.error ("Error processing OrderCreatedHandler: {}", e.getMessage ());
+            log.error ("NonRetryable Error processing OrderCreatedHandler: {}", e.getMessage ());
+            throw new NonRetryableException (e);
         }
     }
 

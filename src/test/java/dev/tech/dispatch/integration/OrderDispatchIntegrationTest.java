@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
 import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.KafkaHeaders;
@@ -19,10 +20,13 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.util.concurrent.TimeUnit;
 
+import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
+import static dev.tech.dispatch.integration.WiremockUtils.stubWiremock;
 import static dev.tech.dispatch.service.DispatcherService.ORDER_CREATED_TOPIC;
 import static dev.tech.dispatch.util.TestEventData.buildOrderCreated;
 import static java.util.UUID.randomUUID;
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 
 @Slf4j
@@ -30,10 +34,8 @@ import static org.hamcrest.core.IsEqual.equalTo;
 @ActiveProfiles ("test")
 @EmbeddedKafka (controlledShutdown = true)
 @DirtiesContext (classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
+@AutoConfigureWireMock (port = 0)
 class OrderDispatchIntegrationTest {
-
-  //  private static final String ORDER_CREATED_TOPIC = "order.created";
-
     @Autowired
     private KafkaTemplate<String, Object> kafkaTemplate;
     @Autowired
@@ -80,9 +82,7 @@ class OrderDispatchIntegrationTest {
         kafkaTestListener.orderDispatchedTopic.set (0);
         kafkaTestListener.orderDispatchedTrackingTopic.set (0);
 
-/*        while (embeddedKafkaBroker.getPartitionsPerTopic () != 2) {
-            Thread.sleep (500);
-        }*/
+        WiremockUtils.reset ();
 
         registry.getListenerContainers ().forEach (container ->
                 ContainerTestUtils.waitForAssignment (container,
@@ -90,7 +90,22 @@ class OrderDispatchIntegrationTest {
     }
 
     @Test
-    void testOrderDispatchFlow () throws Exception {
+    void testOrderDispatchFlow_200 () throws Exception {
+        stubWiremock ("/api/stock?item=test-item", 200, "true");
+        String key = randomUUID ().toString ();
+        sendMessage (ORDER_CREATED_TOPIC, key, buildOrderCreated (randomUUID (), "test-item"));
+
+        await ().atMost (5, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
+                .until (kafkaTestListener.orderDispatchedTopic::get, equalTo (1));
+
+        await ().atMost (1, TimeUnit.SECONDS).pollDelay (300, TimeUnit.MILLISECONDS)
+                .until (kafkaTestListener.orderDispatchedTrackingTopic::get, equalTo (2));
+    }
+
+    @Test
+    void testOrderDispatchFlow_503_Retrayable () throws Exception {
+        stubWiremock ("/api/stock?item=test-item", 503, "Service Unavailable", "failOnce", STARTED, "succeedNextTime");
+        stubWiremock ("/api/stock?item=test-item", 200, "true", "failOnce", "succeedNextTime", "succeedNextTime");
         String key = randomUUID ().toString ();
         sendMessage (ORDER_CREATED_TOPIC, key, buildOrderCreated (randomUUID (), "test-item"));
 
@@ -99,6 +114,17 @@ class OrderDispatchIntegrationTest {
 
         await ().atMost (1, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
                 .until (kafkaTestListener.orderDispatchedTrackingTopic::get, equalTo (2));
+    }
+
+    @Test
+    void testOrderDispatchFlow_404_NonRetrayable () throws Exception {
+        stubWiremock ("/api/stock?item=test-item", 404, "Bad Request");
+        String key = randomUUID ().toString ();
+        sendMessage (ORDER_CREATED_TOPIC, key, buildOrderCreated (randomUUID (), "test-item"));
+
+        TimeUnit.SECONDS.sleep (3);
+        assertThat (kafkaTestListener.orderDispatchedTopic.get (), equalTo (0));
+        assertThat (kafkaTestListener.orderDispatchedTrackingTopic.get (), equalTo (0));
     }
 
     private void sendMessage (final String topic, String key, Object data) throws Exception {

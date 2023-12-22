@@ -4,6 +4,7 @@ import dev.tech.dispatch.message.DispatchCompletedEvent;
 import dev.tech.dispatch.message.DispatchPreparingEvent;
 import dev.tech.dispatch.message.OrderCreated;
 import dev.tech.dispatch.message.OrderDispatched;
+import dev.tech.dispatch.restclient.StockServiceClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -22,11 +23,13 @@ class DispatcherServiceTest {
 
     private DispatcherService dispatcherService;
     private KafkaTemplate<String, Object> kafkaTemplateMock;
+    private StockServiceClient mockedStockServiceClient;
 
     @BeforeEach
     void setUp () {
         kafkaTemplateMock = mock (KafkaTemplate.class);
-        dispatcherService = new DispatcherService (kafkaTemplateMock);
+        mockedStockServiceClient = mock (StockServiceClient.class);
+        dispatcherService = new DispatcherService (kafkaTemplateMock, mockedStockServiceClient);
     }
 
     @Test
@@ -35,6 +38,7 @@ class DispatcherServiceTest {
         when (kafkaTemplateMock.send (anyString (), anyString (), any (OrderDispatched.class))).thenReturn (mock (CompletableFuture.class));
         when (kafkaTemplateMock.send (anyString (), anyString (), any (DispatchPreparingEvent.class))).thenReturn (mock (CompletableFuture.class));
         when (kafkaTemplateMock.send (anyString (), anyString (), any (DispatchCompletedEvent.class))).thenReturn (mock (CompletableFuture.class));
+        when (mockedStockServiceClient.checkAvailability (anyString ())).thenReturn ("true");
 
         OrderCreated testEvent = buildOrderCreated (randomUUID (), randomUUID ().toString ());
         dispatcherService.process (key, testEvent);
@@ -42,17 +46,20 @@ class DispatcherServiceTest {
         verify (kafkaTemplateMock, times (1)).send (eq ("order.dispatched"), eq (key), any (OrderDispatched.class));
         verify (kafkaTemplateMock, times (1)).send (eq ("dispatch.tracking"), eq (key), any (DispatchPreparingEvent.class));
         verify (kafkaTemplateMock, times (1)).send (eq ("dispatch.tracking"), eq (key), any (DispatchCompletedEvent.class));
+        verify (mockedStockServiceClient, times (1)).checkAvailability (anyString ());
     }
 
     @Test
     void process_ThrowsException () throws ExecutionException, InterruptedException {
         String key = randomUUID ().toString ();
         OrderCreated testEvent = buildOrderCreated (randomUUID (), randomUUID ().toString ());
+        when (mockedStockServiceClient.checkAvailability (anyString ())).thenReturn ("true");
         doThrow (new RuntimeException ("Test Exception")).when (kafkaTemplateMock).send (eq ("order.dispatched"),anyString (), any (OrderDispatched.class));
 
         Exception exception = assertThrows (RuntimeException.class, () -> dispatcherService.process (key, testEvent));
         verify (kafkaTemplateMock, times (1)).send (eq ("order.dispatched"), eq (key), any (OrderDispatched.class));
         assertEquals ("Test Exception", exception.getMessage ());
+        verify (mockedStockServiceClient, times (1)).checkAvailability (anyString ());
     }
 
     @Test
@@ -60,24 +67,29 @@ class DispatcherServiceTest {
         String key = randomUUID ().toString ();
         OrderCreated testEvent = buildOrderCreated (randomUUID (), randomUUID ().toString ());
         when (kafkaTemplateMock.send (anyString (), anyString (), any (OrderDispatched.class))).thenReturn (mock (CompletableFuture.class));
+        when (mockedStockServiceClient.checkAvailability (anyString ())).thenReturn ("true");
         doThrow (new RuntimeException ("Test Exception")).when (kafkaTemplateMock).send (eq ("dispatch.tracking"), eq (key), any (DispatchPreparingEvent.class));
 
         Exception exception = assertThrows (RuntimeException.class, () -> dispatcherService.process (key, testEvent));
         verify (kafkaTemplateMock, times (1)).send (eq ("dispatch.tracking"), eq (key), any (DispatchPreparingEvent.class));
         assertEquals ("Test Exception", exception.getMessage ());
+        verify (mockedStockServiceClient, times (1)).checkAvailability (anyString ());
     }
+
     @Test
     void process_ThrowsExceptionForDispatchCompletedEvent () throws ExecutionException, InterruptedException {
         String key = randomUUID ().toString ();
         OrderCreated testEvent = buildOrderCreated (randomUUID (), randomUUID ().toString ());
         when (kafkaTemplateMock.send (anyString (), anyString (), any (OrderDispatched.class))).thenReturn (mock (CompletableFuture.class));
         when(kafkaTemplateMock.send(eq ("dispatch.tracking"), eq (key), any (DispatchPreparingEvent.class))).thenReturn (mock (CompletableFuture.class));
+        when (mockedStockServiceClient.checkAvailability (anyString ())).thenReturn ("true");
         doThrow (new RuntimeException ("Test Exception_2")).when (kafkaTemplateMock).send (eq ("dispatch.tracking"), eq (key),
                 any (DispatchCompletedEvent.class));
 
         Exception exception = assertThrows (RuntimeException.class, () -> dispatcherService.process (key, testEvent));
         verify (kafkaTemplateMock, times (1)).send (eq ("dispatch.tracking"), eq (key), any (DispatchCompletedEvent.class));
         assertEquals ("Test Exception_2", exception.getMessage ());
+        verify (mockedStockServiceClient, times (1)).checkAvailability (anyString ());
     }
 
 }

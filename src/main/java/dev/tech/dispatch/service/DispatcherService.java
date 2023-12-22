@@ -4,6 +4,7 @@ import dev.tech.dispatch.message.DispatchCompletedEvent;
 import dev.tech.dispatch.message.DispatchPreparingEvent;
 import dev.tech.dispatch.message.OrderCreated;
 import dev.tech.dispatch.message.OrderDispatched;
+import dev.tech.dispatch.restclient.StockServiceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -25,22 +26,30 @@ public class DispatcherService {
     private static final UUID APPLICATION_ID = randomUUID ();
 
     private final KafkaTemplate<String, Object> kafkaProducer;
+    private final StockServiceClient stockService;
 
     public void process (String key, OrderCreated payload) throws ExecutionException, InterruptedException {
-        OrderDispatched orderDispatched = OrderDispatched.builder ()
-                .orderId (payload.getOrderId ())
-                .processedById (APPLICATION_ID)
-                .notes ("Dispatched: " + payload.getItem ())
-                .build ();
-        kafkaProducer.send (ORDER_DISPATCHED_TOPIC, key, orderDispatched).get ();
-        log.info ("Sent messages: orderId: {} - processedById: {}, key - {}", payload.getOrderId (), APPLICATION_ID, key);
+        String available = stockService.checkAvailability (payload.getItem ());
 
-        DispatchPreparingEvent event = DispatchPreparingEvent.builder ()
-                .orderId (payload.getOrderId ())
-                .build ();
-        kafkaProducer.send (ORDER_DISPATCHED_TRACKING_TOPIC, key, event).get ();
+        if (Boolean.TRUE.equals (Boolean.valueOf (available))) {
+            OrderDispatched orderDispatched = OrderDispatched.builder ()
+                    .orderId (payload.getOrderId ())
+                    .processedById (APPLICATION_ID)
+                    .notes ("Dispatched: " + payload.getItem ())
+                    .build ();
+            kafkaProducer.send (ORDER_DISPATCHED_TOPIC, key, orderDispatched).get ();
+            log.info ("Sent messages: orderId: {} - processedById: {}, key - {}", payload.getOrderId (), APPLICATION_ID, key);
 
-        processCompletedEvent (key, payload);
+            DispatchPreparingEvent event = DispatchPreparingEvent.builder ()
+                    .orderId (payload.getOrderId ())
+                    .build ();
+            kafkaProducer.send (ORDER_DISPATCHED_TRACKING_TOPIC, key, event).get ();
+
+            processCompletedEvent (key, payload);
+        } else {
+            log.info ("Item not available: {}", payload.getItem ());
+        }
+
     }
 
     private void processCompletedEvent (final String key, final OrderCreated payload) throws InterruptedException, ExecutionException {
