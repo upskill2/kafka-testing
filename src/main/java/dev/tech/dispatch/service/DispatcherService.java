@@ -23,6 +23,7 @@ public class DispatcherService {
     public static final String ORDER_CREATED_TOPIC = "order.created";
     public static final String ORDER_DISPATCHED_TOPIC = "order.dispatched";
     public static final String ORDER_DISPATCHED_TRACKING_TOPIC = "dispatch.tracking";
+    public static final String ORDER_CREATED_DLT_TOPIC = "order.created.DLT";
     private static final UUID APPLICATION_ID = randomUUID ();
 
     private final KafkaTemplate<String, Object> kafkaProducer;

@@ -95,6 +95,7 @@ class TrackingServiceIntegrationTest {
         kafkaTestListener.orderDispatchedTopic.set (0);
         kafkaTestListener.orderDispatchedTrackingTopic.set (0);
         kafkaTestListener.trackingStatusTopic.set (0);
+        kafkaTestListener.orderDltTopic.set (0);
 
         WiremockUtils.reset ();
 
@@ -121,6 +122,9 @@ class TrackingServiceIntegrationTest {
 
         await ().atMost (1, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
                 .until (kafkaTestListener.trackingStatusTopic::get, equalTo (2));
+
+        await ().atMost (1, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
+                .until (kafkaTestListener.orderDltTopic::get, equalTo (0));
     }
 
     @Test
@@ -142,6 +146,9 @@ class TrackingServiceIntegrationTest {
 
         await ().atMost (1, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
                 .until (kafkaTestListener.trackingStatusTopic::get, equalTo (2));
+
+        await ().atMost (1, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
+                .until (kafkaTestListener.orderDltTopic::get, equalTo (0));
     }
 
     @Test
@@ -154,10 +161,22 @@ class TrackingServiceIntegrationTest {
                 .setHeader (KafkaHeaders.KEY, randomUUID ().toString ())
                 .build ());
 
-        TimeUnit.SECONDS.sleep (3);
+/*        TimeUnit.SECONDS.sleep (3);
         assertThat (kafkaTestListener.orderDispatchedTopic.get (), equalTo (0));
         assertThat (kafkaTestListener.orderDispatchedTrackingTopic.get (), equalTo (0));
-        assertThat (kafkaTestListener.trackingStatusTopic.get (), equalTo (0));
+        assertThat (kafkaTestListener.trackingStatusTopic.get (), equalTo (0));*/
+
+        await ().atMost (5, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
+                .until (kafkaTestListener.orderDispatchedTopic::get, equalTo (0));
+
+        await ().atMost (1, TimeUnit.SECONDS).pollDelay (300, TimeUnit.MILLISECONDS)
+                .until (kafkaTestListener.orderDispatchedTrackingTopic::get, equalTo (0));
+
+        await ().atMost (1, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
+                .until (kafkaTestListener.trackingStatusTopic::get, equalTo (0));
+
+        await ().atMost (1, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
+                .until (kafkaTestListener.orderDltTopic::get, equalTo (1));
     }
 
 }

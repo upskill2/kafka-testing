@@ -44,4 +44,7 @@ kafka-console-consumer --topic tracking.status --bootstrap-server localhost:9092
 #consumer with printing a key
 kafka-console-consumer --topic tracking.status --bootstrap-server localhost:9092 --property print.key=true --property key.separator=:
 
+#DLT consumer
+kafka-console-consumer --topic order.created.DLT --bootstrap-server localhost:9092 --property print.key=true --property key.separator=:
+
 

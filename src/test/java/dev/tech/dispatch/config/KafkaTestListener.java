@@ -1,10 +1,7 @@
 package dev.tech.dispatch.config;
 
 import dev.tech.dispatch.configs.DispatchConfiguration;
-import dev.tech.dispatch.message.DispatchCompletedEvent;
-import dev.tech.dispatch.message.DispatchPreparingEvent;
-import dev.tech.dispatch.message.OrderDispatched;
-import dev.tech.dispatch.message.TrackingStatusUpdated;
+import dev.tech.dispatch.message.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -22,8 +19,7 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static dev.tech.dispatch.service.DispatcherService.ORDER_DISPATCHED_TOPIC;
-import static dev.tech.dispatch.service.DispatcherService.ORDER_DISPATCHED_TRACKING_TOPIC;
+import static dev.tech.dispatch.service.DispatcherService.*;
 import static dev.tech.dispatch.service.TrackingService.TRACKING_STATUS_TOPIC;
 import static org.springframework.test.util.AssertionErrors.assertNotNull;
 
@@ -32,13 +28,24 @@ import static org.springframework.test.util.AssertionErrors.assertNotNull;
 //@Profile ("test")
 @KafkaListener (
         groupId = "trackingServiceIntegrationTest",
-        topics = {ORDER_DISPATCHED_TOPIC, ORDER_DISPATCHED_TRACKING_TOPIC, TRACKING_STATUS_TOPIC}
+        topics = {ORDER_DISPATCHED_TOPIC, ORDER_DISPATCHED_TRACKING_TOPIC, TRACKING_STATUS_TOPIC, ORDER_CREATED_DLT_TOPIC}
 )
 public class KafkaTestListener {
 
     public AtomicInteger orderDispatchedTopic = new AtomicInteger (0);
     public AtomicInteger orderDispatchedTrackingTopic = new AtomicInteger (0);
     public AtomicInteger trackingStatusTopic = new AtomicInteger (0);
+    public AtomicInteger orderDltTopic = new AtomicInteger (0);
+
+    @KafkaHandler
+    public void listenOrderDispatchedTopic (@Header (KafkaHeaders.RECEIVED_KEY) String key,
+                                            @Header (KafkaHeaders.RECEIVED_TOPIC) String topic,
+                                            @Payload OrderCreated payload) {
+        log.info ("KafkaTestListener received event: {} from topic: {} with key: {}", payload, topic, key);
+        orderDltTopic.incrementAndGet ();
+        assertNotNull ("Dispatcher topic payload is not null", payload);
+        assertNotNull ("Dispatcher key is not null", key);
+    }
 
     @KafkaHandler
     public void listenOrderDispatchedTopic (@Header (KafkaHeaders.RECEIVED_KEY) String key,

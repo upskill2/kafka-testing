@@ -1,6 +1,5 @@
 package dev.tech.dispatch.integration;
 
-import dev.tech.dispatch.configs.DispatchConfiguration;
 import dev.tech.dispatch.config.KafkaTestListener;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,11 +25,10 @@ import static dev.tech.dispatch.service.DispatcherService.ORDER_CREATED_TOPIC;
 import static dev.tech.dispatch.util.TestEventData.buildOrderCreated;
 import static java.util.UUID.randomUUID;
 import static org.awaitility.Awaitility.await;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 
 @Slf4j
-@SpringBootTest (classes = {DispatchConfiguration.class})
+@SpringBootTest
 @ActiveProfiles ("test")
 @EmbeddedKafka (controlledShutdown = true)
 @DirtiesContext (classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
@@ -81,6 +79,7 @@ class OrderDispatchIntegrationTest {
     public void setUp () throws InterruptedException {
         kafkaTestListener.orderDispatchedTopic.set (0);
         kafkaTestListener.orderDispatchedTrackingTopic.set (0);
+        kafkaTestListener.orderDltTopic.set (0);
 
         WiremockUtils.reset ();
 
@@ -97,9 +96,10 @@ class OrderDispatchIntegrationTest {
 
         await ().atMost (5, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
                 .until (kafkaTestListener.orderDispatchedTopic::get, equalTo (1));
-
         await ().atMost (1, TimeUnit.SECONDS).pollDelay (300, TimeUnit.MILLISECONDS)
                 .until (kafkaTestListener.orderDispatchedTrackingTopic::get, equalTo (2));
+        await ().atMost (1, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
+                .until (kafkaTestListener.orderDltTopic::get, equalTo (0));
     }
 
     @Test
@@ -111,9 +111,10 @@ class OrderDispatchIntegrationTest {
 
         await ().atMost (5, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
                 .until (kafkaTestListener.orderDispatchedTopic::get, equalTo (1));
-
         await ().atMost (1, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
                 .until (kafkaTestListener.orderDispatchedTrackingTopic::get, equalTo (2));
+        await ().atMost (3, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
+                .until (kafkaTestListener.orderDltTopic::get, equalTo (0));
     }
 
     @Test
@@ -122,9 +123,12 @@ class OrderDispatchIntegrationTest {
         String key = randomUUID ().toString ();
         sendMessage (ORDER_CREATED_TOPIC, key, buildOrderCreated (randomUUID (), "test-item"));
 
-        TimeUnit.SECONDS.sleep (3);
-        assertThat (kafkaTestListener.orderDispatchedTopic.get (), equalTo (0));
-        assertThat (kafkaTestListener.orderDispatchedTrackingTopic.get (), equalTo (0));
+        await ().atMost (3, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
+                .until (kafkaTestListener.orderDispatchedTopic::get, equalTo (0));
+        await ().atMost (3, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
+                .until (kafkaTestListener.orderDispatchedTrackingTopic::get, equalTo (0));
+        await ().atMost (3, TimeUnit.SECONDS).pollDelay (100, TimeUnit.MILLISECONDS)
+                .until (kafkaTestListener.orderDltTopic::get, equalTo (1));
     }
 
     private void sendMessage (final String topic, String key, Object data) throws Exception {
