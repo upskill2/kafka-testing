@@ -21,10 +21,12 @@ kafka-console-producer --topic order.created --bootstrap-server localhost:9092 -
 #invalid
 {"orderId": "123", "item": "invalid-4"}
 #with key
-"abc":{"orderId": "4f27ea17-83bd-46d2-9459-d0c0ac5fc05b", "item": "item-14"}
 "efg":{"orderId": "4f27ea17-83bd-46d2-9459-d0c0ac5fc05b", "item": "item-20"}
 "xcv":{"orderId": "4f27ea17-83bd-46d2-9459-d0c0ac5fc05b", "item": "item-20"}
 "123":{"orderId": "4f27ea17-83bd-46d2-9459-d0c0ac5fc023", "item": "item-11"}
+"200":{"orderId": "4f27ea17-83bd-46d2-9459-d0c0ac5fc05b", "item": "item_200"}
+"400":{"orderId": "4f27ea17-83bd-46d2-9459-d0c0ac5fc05b", "item": "item_400"}
+"502":{"orderId": "4f27ea17-83bd-46d2-9459-d0c0ac5fc05b", "item": "item_502"}
 
 # create topic dispatcher consumer
 kafka-console-consumer --topic order.dispatched --bootstrap-server localhost:9092

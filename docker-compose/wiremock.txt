@@ -1,0 +1,5 @@
+#1 clone/create a repo with mapping like [https://github.com/lydtechconsulting/introduction-to-kafka-wiremock?tab=readme-ov-file]
+https://github.com/lydtechconsulting/introduction-to-kafka-wiremock.git
+
+#2 download the Wiremock standalone jar [https://wiremock.org/docs/standalone/java-jar/]
+java -jar wiremock-standalone-3.3.1.jar

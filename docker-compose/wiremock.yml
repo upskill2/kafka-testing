@@ -1,0 +1,11 @@
+name: kafka_dispatcher
+services:
+  wiremock:
+    stdin_open: true
+    tty: true
+    ports:
+      - 9001:8080
+    container_name: wiremock
+    volumes:
+      - /home/tc/wiremock/:/home/wiremock/
+    image: wiremock/wiremock:3.3.1
